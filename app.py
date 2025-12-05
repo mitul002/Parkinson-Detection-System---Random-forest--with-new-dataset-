@@ -217,11 +217,26 @@ def main():
     )
     
     if upload_mode == "Single Image":
-        # File upload
-        uploaded_file = st.file_uploader(
-            "Upload a spiral drawing image...", 
-            type=["jpg", "jpeg", "png"]
+        # Upload method selection
+        st.subheader("📤 Upload Image")
+        upload_method = st.radio(
+            "Choose upload method:",
+            ["📁 Upload from Files", "📷 Take Photo with Camera"],
+            horizontal=True
         )
+        
+        uploaded_file = None
+        
+        if upload_method == "📁 Upload from Files":
+            uploaded_file = st.file_uploader(
+                "Upload a spiral drawing image...", 
+                type=["jpg", "jpeg", "png"],
+                key="file_uploader"
+            )
+        else:  # Camera option
+            camera_photo = st.camera_input("Take a photo of spiral drawing", key="camera_input")
+            if camera_photo:
+                uploaded_file = camera_photo
         
         if uploaded_file:
             # Display original image
