@@ -1,0 +1,48 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# Model files (large binary files)
+*.pkl
+*.h5
+*.pth
+*.onnx
+
+# Dataset images (too large for GitHub)
+DATASET/
+*.jpg
+*.jpeg
+*.png
+*.gif
+
+# CSV datasets (can be large)
+*.csv
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+*.ipynb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+temp_*.jpg
+temp_*.png
