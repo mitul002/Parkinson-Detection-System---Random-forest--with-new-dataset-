@@ -67,22 +67,53 @@ def get_shap_explanation(model, features, feature_names):
     else:
         raise ValueError(f"Unexpected SHAP values shape: {shap_values.shape}")
     
-    # Create custom bar chart of top 10 features
+    # Create custom bar chart showing diverse top features
     imp = np.abs(vec)
-    top_idx = np.argsort(-imp)[:15]  # Get top 15 candidates
-    top_features = [feature_names[i] for i in top_idx]
-    top_values = vec[top_idx]
+    top_idx = np.argsort(-imp)[:20]  # Get top 20 candidates
     
-    # Filter out near-zero values (keep only meaningful contributions)
-    threshold = np.max(imp) * 0.005  # Keep features with at least 0.5% of max importance (lowered from 1%)
-    meaningful_mask = np.abs(top_values) >= threshold
-    top_features_filtered = [f for f, m in zip(top_features, meaningful_mask) if m]
-    top_values_filtered = top_values[meaningful_mask]
+    # Group similar features to ensure diversity
+    selected_features = []
+    selected_values = []
+    selected_idx = []
+    feature_groups = set()
     
-    # Ensure at least 5 features are shown if available
-    if len(top_features_filtered) < 5 and len(top_features) >= 5:
-        top_features_filtered = top_features[:5]
-        top_values_filtered = top_values[:5]
+    for idx in top_idx:
+        feat_name = feature_names[idx]
+        # Identify feature group (thickness, curvature, CNN, etc.)
+        if 'Thickness' in feat_name or 'thickness' in feat_name:
+            group = 'thickness'
+        elif 'Curv' in feat_name or 'curv' in feat_name:
+            group = 'curvature'
+        elif 'Path' in feat_name or 'path' in feat_name:
+            group = 'path'
+        elif 'Rad' in feat_name or 'rad' in feat_name or 'Radial' in feat_name:
+            group = 'radial'
+        elif 'Skel' in feat_name or 'skel' in feat_name:
+            group = 'skeleton'
+        elif 'cnn_feat' in feat_name:
+            group = f'cnn_{idx // 50}'  # Group CNN features by ranges
+        else:
+            group = feat_name.split('_')[0].lower()
+        
+        # Limit to 2 features per group for diversity
+        group_count = sum(1 for g in feature_groups if g == group)
+        if group_count < 2 or len(selected_features) < 8:
+            selected_features.append(feat_name)
+            selected_values.append(vec[idx])
+            selected_idx.append(idx)
+            feature_groups.add(group)
+            
+            if len(selected_features) >= 12:
+                break
+    
+    # Fallback: if too few features, just take top 10
+    if len(selected_features) < 8:
+        top_idx = np.argsort(-imp)[:10]
+        selected_features = [feature_names[i] for i in top_idx]
+        selected_values = vec[top_idx]
+    
+    top_features_filtered = selected_features
+    top_values_filtered = np.array(selected_values)
     
     # Determine number of features to show
     n_features = len(top_features_filtered)
