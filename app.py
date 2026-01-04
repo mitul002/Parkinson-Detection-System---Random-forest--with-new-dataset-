@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 from feature_extraction import SpiralFeatureExtractor
+import firebase_auth
 
 # Page configuration
 st.set_page_config(
@@ -224,6 +225,72 @@ def process_single_image(uploaded_file, model, scaler, imputer, label_encoder, f
         'X': X
     }
 
+def show_login_page():
+    """Display login/signup page"""
+    firebase_auth.init_session_state()
+    
+    st.title("🌀 Parkinson's Disease Detection System")
+    st.markdown("### Please login or sign up to continue")
+    
+    # Create tabs for login and signup
+    tab1, tab2 = st.tabs(["Login", "Sign Up"])
+    
+    with tab1:
+        st.subheader("🔐 Login")
+        with st.form("login_form"):
+            email = st.text_input("Email", key="login_email")
+            password = st.text_input("Password", type="password", key="login_password")
+            submit = st.form_submit_button("Login")
+            
+            if submit:
+                if email and password:
+                    success, message = firebase_auth.login_user(email, password)
+                    if success:
+                        st.success(message)
+                        st.rerun()
+                    else:
+                        st.error(message)
+                else:
+                    st.warning("Please enter both email and password.")
+        
+        # Password reset option
+        with st.expander("Forgot Password?"):
+            reset_email = st.text_input("Enter your email", key="reset_email")
+            if st.button("Send Reset Link"):
+                if reset_email:
+                    success, message = firebase_auth.reset_password(reset_email)
+                    if success:
+                        st.success(message)
+                    else:
+                        st.error(message)
+                else:
+                    st.warning("Please enter your email.")
+    
+    with tab2:
+        st.subheader("📝 Sign Up")
+        with st.form("signup_form"):
+            full_name = st.text_input("Full Name", key="signup_name")
+            bmdc_reg_no = st.text_input("BMDC Registration Number", key="signup_bmdc")
+            email = st.text_input("Email", key="signup_email")
+            password = st.text_input("Password", type="password", key="signup_password")
+            confirm_password = st.text_input("Confirm Password", type="password", key="signup_confirm")
+            submit = st.form_submit_button("Sign Up")
+            
+            if submit:
+                if not all([full_name, bmdc_reg_no, email, password, confirm_password]):
+                    st.warning("Please fill in all fields.")
+                elif password != confirm_password:
+                    st.error("Passwords do not match.")
+                elif len(password) < 6:
+                    st.error("Password must be at least 6 characters long.")
+                else:
+                    success, message = firebase_auth.signup_user(email, password, bmdc_reg_no, full_name)
+                    if success:
+                        st.success(message)
+                        st.rerun()
+                    else:
+                        st.error(message)
+
 def main():
     # Load model and components
     try:
@@ -232,6 +299,16 @@ def main():
     except Exception as e:
         st.error(f"Error loading model files: {str(e)}")
         return
+    
+    # Add logout button in sidebar
+    with st.sidebar:
+        st.write(f"👤 Logged in as: **{st.session_state.get('full_name', 'User')}**")
+        st.write(f"📧 Email: {st.session_state.user_email}")
+        st.write(f"🏥 BMDC: {st.session_state.bmdc_reg_no}")
+        st.write("---")
+        if st.button("🚪 Logout"):
+            firebase_auth.logout_user()
+            st.rerun()
     
     # Title and description
     st.title("🌀 Parkinson's Disease Detection System")
@@ -1216,4 +1293,11 @@ def main():
     """)
 
 if __name__ == "__main__":
-    main()
+    # Initialize session state
+    firebase_auth.init_session_state()
+    
+    # Check if user is logged in
+    if firebase_auth.is_logged_in():
+        main()
+    else:
+        show_login_page()
